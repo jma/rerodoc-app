@@ -242,13 +242,18 @@ def upload_file(url, upload_dir, force=False):
 
 def generate_thumbnail(filename, outfilename=None):
     """Generate a thumnail for a given pdf filename."""
-    img = Image(filename=filename+'[0]', resolution=20)
+    # img = Image(filename=filename+'[0]', resolution=20)
+    # try:
+    #     img.alpha_channel = 'off'
+    #     img.transform(resize='150x150>')
 
+    from invenio_multivio.pdf.api import PDF
     try:
-        img.alpha_channel = 'off'
-        img.transform(resize='150x150>')
+        pdf = PDF(path=filename, page_nr=0)
+        pdf.load()
+        img = pdf.render_page(max_width=80, max_height=80)
 
-    except:
+    except Exception:
         error('image generation failed')
         return None
     if outfilename:
@@ -258,22 +263,26 @@ def generate_thumbnail(filename, outfilename=None):
 
 def extract_text(file, outfilename=None):
     """Extract fulltext from a given pdf file."""
+    from invenio_multivio.pdf.api import PDF
     text = []
     try:
+        pdf = PDF(path=file)
+        pdf.load()
+        text = pdf.get_text_page()
         # doc = slate.PDF(file)
-        doc = PyPDF2.PdfFileReader(file)
-        if doc.isEncrypted:
-            warning('file is encrypted')
-            return []
-        text = []
-        for np in range(doc.getNumPages()):
-            page = doc.getPage(np)
-            text.append(page.extractText())
-    except:
+        # doc = PyPDF2.PdfFileReader(file)
+        # if doc.isEncrypted:
+        #     warning('file is encrypted')
+        #     return []
+        # text = []
+        # for np in range(doc.getNumPages()):
+        #     page = doc.getPage(np)
+        #     text.append(page.extractText())
+    except Exception:
         error('text generation failed')
         pass
     if not text:
-        warning('do not contains text')
+        warning('%s: do not contains text' % file)
         return text
     if outfilename:
         with open(outfilename, 'wb') as of:
